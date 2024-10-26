@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  db:
+    image: mariadb:10.6
+    restart: always
+    hostname: mariadb
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d:ro
+    environment:
+      - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=true
+      - MARIADB_DATABASE=cq
+    profiles: ["day7", "day11", "day12", "day14", "day15", "day25"]
+
+  elastic:
+    image: elasticsearch:7.9.2
+    hostname: elastic
+    environment:
+      - discovery.type=single-node
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms128m -Xmx128m"
+    profiles: ["day23", "day26"]
+
+  sqlmap:
+    image: googlesky/sqlmap
+    profiles: ["sqlmap"]
+    entrypoint: /bin/sh
+
+  cqvulnsite:
+    image: cqureacademy/cqvulnsite-demo
+    hostname: CQVulnSite
+    environment:
+      - DAY
+    tmpfs:
+      - /var/www/html/uploads:mode=770,uid=33,gid=33
+      - /var/log/apache2
+    networks:
+      default:
+        ipv4_address: 10.3.0.3
+    ports:
+      - "127.0.0.1:8443:443"
+
+  cqtools:
+    image: cqureacademy/cqtools-demo
+    hostname: CQTools
+    entrypoint: sh -c "tail -f /dev/null"
+    networks:
+      default:
+        ipv4_address: 10.3.0.10
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 10.3.0.0/16
